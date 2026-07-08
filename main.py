@@ -71,7 +71,8 @@ def send_otp_email(to_email: str, code: str) -> bool:
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(SMTP_FROM, [to_email], msg.as_string())
         return True
-    except Exception:
+    except Exception as e:
+        print(f"OTP_EMAIL_SEND_ERROR: {type(e).__name__}: {e}", flush=True)
         return False
 
 
@@ -90,6 +91,13 @@ def startup():
     with engine.connect() as conn:
         try:
             conn.execute(text("ALTER TABLE users ADD COLUMN last_2fa_at TIMESTAMP"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE urls ADD COLUMN recipient_emails TEXT"))
             conn.commit()
         except Exception:
             conn.rollback()
@@ -263,6 +271,7 @@ def web_shorten(
     original_url: str = Form(...),
     custom_alias: str = Form(""),
     expires_in_days: str = Form(""),
+    recipient_emails: str = Form(""),
     db: Session = Depends(get_db),
 ):
     user = get_current_user(request, db)
@@ -294,6 +303,7 @@ def web_shorten(
         original_url=original_url,
         expires_at=expires_at,
         created_by=user.email,
+        recipient_emails=recipient_emails.strip() or None,
     )
     db.add(record)
     db.commit()

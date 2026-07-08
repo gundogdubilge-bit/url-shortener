@@ -37,6 +37,7 @@ class URLRecord(Base):
     expires_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     created_by = Column(String, nullable=True)
+    recipient_emails = Column(String, nullable=True)
 
 
 class LoginAttempt(Base):
