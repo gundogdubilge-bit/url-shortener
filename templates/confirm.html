@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACI1878 | Devam Et</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0d1b3e; --navy2: #162347; --gold: #c9a84c; --gold2: #e8c76a;
+      --light: #f0f4ff; --muted: #8a9bbf; --border: #1e3060;
+    }
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: var(--navy); color: var(--light); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .box {
+      background: var(--navy2); border: 1px solid var(--border); border-top: 3px solid var(--gold);
+      border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 400px;
+    }
+    .logo { display: flex; align-items: center; gap: 0.75rem; justify-content: center; margin-bottom: 1.75rem; }
+    .logo-badge { background: var(--gold); color: var(--navy); font-weight: 800; font-size: 1rem; padding: 0.4rem 0.75rem; border-radius: 6px; }
+    .logo-text { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    .logo-text span { color: var(--gold); }
+    h2 { text-align: center; font-size: 1rem; color: var(--muted); font-weight: 500; margin-bottom: 0.5rem; }
+    .hint { text-align: center; font-size: 0.78rem; color: var(--muted); margin-bottom: 1.5rem; }
+    label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--muted); margin-bottom: 0.35rem; letter-spacing: 0.03em; }
+    input {
+      width: 100%; padding: 0.7rem 0.9rem; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--navy); color: var(--light); font-size: 0.93rem; font-family: inherit; outline: none;
+    }
+    input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+    .btn {
+      width: 100%; padding: 0.75rem; border-radius: 8px; border: none; cursor: pointer;
+      font-size: 0.95rem; font-weight: 700; font-family: inherit; margin-top: 1rem;
+      background: linear-gradient(135deg, var(--gold), var(--gold2)); color: var(--navy);
+    }
+    .btn:hover { opacity: 0.88; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="logo">
+      <div class="logo-badge">ACI</div>
+      <div class="logo-text">Link<span>Kısalt</span></div>
+    </div>
+    <h2>Bu bağlantıya devam etmek için e-posta adresinizi girin</h2>
+    <div class="hint">(SmartClass'taki e-posta adresinizi girmenizi öneririz.)</div>
+    <form method="post" action="/{{ short_code }}">
+      <label>E-posta Adresi</label>
+      <input type="email" name="visitor_email" placeholder="ad.soyad@aci.k12.tr" required autofocus />
+      <button type="submit" class="btn">Devam Et →</button>
+    </form>
+  </div>
+</body>
+</html>

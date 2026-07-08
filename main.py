@@ -69,7 +69,14 @@ def startup():
 
     with engine.connect() as conn:
         try:
-            conn.execute(text("ALTER TABLE urls ADD COLUMN recipient_emails TEXT"))
+            conn.execute(text("ALTER TABLE urls ADD COLUMN require_email BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE click_logs ADD COLUMN visitor_email TEXT"))
             conn.commit()
         except Exception:
             conn.rollback()
@@ -197,7 +204,7 @@ def web_shorten(
     original_url: str = Form(...),
     custom_alias: str = Form(""),
     expires_in_days: str = Form(""),
-    recipient_emails: str = Form(""),
+    require_email: str = Form("off"),
     db: Session = Depends(get_db),
 ):
     user = get_current_user(request, db)
@@ -229,7 +236,7 @@ def web_shorten(
         original_url=original_url,
         expires_at=expires_at,
         created_by=user.email,
-        recipient_emails=recipient_emails.strip() or None,
+        require_email=(require_email == "on"),
     )
     db.add(record)
     db.commit()
@@ -386,10 +393,7 @@ def get_qr(short_code: str, db: Session = Depends(get_db)):
     return StreamingResponse(buf, media_type="image/png")
 
 
-@app.get("/{short_code}")
-def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db)):
-    if short_code in ("login", "logout", "favicon.ico"):
-        raise HTTPException(status_code=404)
+def _get_valid_record(short_code: str, db: Session) -> URLRecord:
     record = db.query(URLRecord).filter(URLRecord.short_code == short_code).first()
     if not record:
         raise HTTPException(status_code=404, detail="Link bulunamadı.")
@@ -399,11 +403,32 @@ def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db
         record.is_active = False
         db.commit()
         raise HTTPException(status_code=410, detail="Bu linkin süresi dolmuş.")
+    return record
+
+
+def _log_click_and_redirect(record: URLRecord, request: Request, db: Session, visitor_email: Optional[str] = None):
     record.click_count += 1
     db.add(ClickLog(
-        short_code=short_code,
+        short_code=record.short_code,
         ip_address=get_client_ip(request),
         user_agent=request.headers.get("user-agent", "")[:255],
+        visitor_email=visitor_email,
     ))
     db.commit()
     return RedirectResponse(url=record.original_url)
+
+
+@app.get("/{short_code}")
+def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db)):
+    if short_code in ("login", "logout", "favicon.ico"):
+        raise HTTPException(status_code=404)
+    record = _get_valid_record(short_code, db)
+    if record.require_email:
+        return templates.TemplateResponse("confirm.html", {"request": request, "short_code": short_code})
+    return _log_click_and_redirect(record, request, db)
+
+
+@app.post("/{short_code}")
+def redirect_url_confirm(short_code: str, request: Request, visitor_email: str = Form(...), db: Session = Depends(get_db)):
+    record = _get_valid_record(short_code, db)
+    return _log_click_and_redirect(record, request, db, visitor_email=visitor_email.strip().lower())

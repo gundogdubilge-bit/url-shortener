@@ -37,7 +37,7 @@ class URLRecord(Base):
     expires_at = Column(DateTime, nullable=True)
     is_active = Column(Boolean, default=True)
     created_by = Column(String, nullable=True)
-    recipient_emails = Column(String, nullable=True)
+    require_email = Column(Boolean, default=False)
 
 
 class LoginAttempt(Base):
@@ -59,6 +59,7 @@ class ClickLog(Base):
     short_code = Column(String, index=True, nullable=False)
     ip_address = Column(String, nullable=True)
     user_agent = Column(String, nullable=True)
+    visitor_email = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 

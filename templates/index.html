@@ -229,6 +229,10 @@
             <button type="submit" class="btn btn-primary" id="btn-shorten">Kısalt →</button>
           </div>
         </div>
+        <div class="checkbox-row">
+          <input type="checkbox" name="require_email" id="chk-require-email" value="on" />
+          <label for="chk-require-email">Açan kişiden e-posta adresi istensin mi?</label>
+        </div>
       </form>
     </div>
 
@@ -251,7 +255,7 @@
           <tbody>
             {% for url in urls %}
             <tr>
-              <td><a class="short-link" href="{{ base_url }}/{{ url.short_code }}" target="_blank">/{{ url.short_code }}</a></td>
+              <td><a class="short-link" href="{{ base_url }}/{{ url.short_code }}" target="_blank">/{{ url.short_code }}</a>{% if url.require_email %} <span title="Açan kişiden e-posta istenir">📧</span>{% endif %}</td>
               <td class="url-cell" title="{{ url.original_url }}">{{ url.original_url }}</td>
               {% if user.is_admin %}<td style="font-size:0.78rem;color:var(--muted);">{{ url.created_by or '—' }}</td>{% endif %}
               <td style="font-weight:600;color:var(--gold2);">{{ url.click_count }}</td>
@@ -416,6 +420,7 @@
           <thead>
             <tr>
               <th>Kısa Link</th>
+              <th>E-posta</th>
               <th>IP Adresi</th>
               <th>Tarih</th>
             </tr>
@@ -424,6 +429,7 @@
             {% for c in click_logs %}
             <tr>
               <td><a class="short-link" href="{{ base_url }}/{{ c.short_code }}" target="_blank">/{{ c.short_code }}</a></td>
+              <td style="color:var(--muted);">{{ c.visitor_email or '—' }}</td>
               <td style="color:var(--muted);">{{ c.ip_address or '—' }}</td>
               <td style="font-size:0.78rem;color:var(--muted);">{{ c.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
             </tr>
