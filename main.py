@@ -1,8 +1,11 @@
 import os
 import random
+import secrets
+import smtplib
 import string
 import io
 import qrcode
+from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
@@ -13,7 +16,7 @@ from passlib.context import CryptContext
 from starlette.middleware.sessions import SessionMiddleware
 from typing import Optional
 
-from database import get_db, create_tables, URLRecord, User, SessionLocal, engine
+from database import get_db, create_tables, URLRecord, User, LoginAttempt, ClickLog, SessionLocal, engine
 
 app = FastAPI(title="ACI1878 Link Kısaltıcı")
 app.add_middleware(
@@ -26,6 +29,51 @@ templates = Jinja2Templates(directory="templates")
 BASE_URL = os.environ.get("BASE_URL", "https://aci1878.site")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
+
+PENDING_2FA = {}
+OTP_TTL_MINUTES = 10
+OTP_MAX_ATTEMPTS = 5
+
+
+def get_client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def log_attempt(db: Session, email: str, success: bool, reason: str, request: Request):
+    db.add(LoginAttempt(
+        email=email,
+        success=success,
+        reason=reason,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent", "")[:255],
+    ))
+    db.commit()
+
+
+def send_otp_email(to_email: str, code: str) -> bool:
+    if not SMTP_HOST or not SMTP_USER or not SMTP_PASSWORD:
+        return False
+    try:
+        msg = MIMEText(f"ACI1878 Link Kısaltıcı giriş doğrulama kodunuz: {code}\n\nBu kod {OTP_TTL_MINUTES} dakika içinde geçerliliğini yitirecektir.")
+        msg["Subject"] = "ACI1878 Giriş Doğrulama Kodu"
+        msg["From"] = SMTP_FROM
+        msg["To"] = to_email
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASSWORD)
+            server.sendmail(SMTP_FROM, [to_email], msg.as_string())
+        return True
+    except Exception:
+        return False
+
 
 # ── Startup ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +83,11 @@ def startup():
     with engine.connect() as conn:
         try:
             conn.execute(text("ALTER TABLE urls ADD COLUMN created_by TEXT"))
+            conn.commit()
+        except Exception:
+            pass
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN last_2fa_at TIMESTAMP"))
             conn.commit()
         except Exception:
             pass
@@ -88,12 +141,72 @@ def login_post(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    user = db.query(User).filter(User.email == email.strip().lower()).first()
+    email_norm = email.strip().lower()
+    user = db.query(User).filter(User.email == email_norm).first()
     if not user or not user.is_active or not pwd_context.verify(password, user.password_hash):
+        log_attempt(db, email_norm, False, "invalid_credentials", request)
         return templates.TemplateResponse("login.html", {
             "request": request,
             "error": True
         })
+
+    today = datetime.utcnow().date()
+    if user.last_2fa_at and user.last_2fa_at.date() == today:
+        log_attempt(db, user.email, True, "same_day_2fa_skip", request)
+        request.session["user_email"] = user.email
+        return RedirectResponse(url="/", status_code=303)
+
+    code = f"{secrets.randbelow(1000000):06d}"
+    PENDING_2FA[user.email] = {
+        "code": code,
+        "expires": datetime.utcnow() + timedelta(minutes=OTP_TTL_MINUTES),
+        "attempts": 0,
+    }
+    if not send_otp_email(user.email, code):
+        log_attempt(db, user.email, False, "email_send_failed", request)
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": True,
+            "smtp_error": True,
+        })
+    log_attempt(db, user.email, True, "password_ok_pending_2fa", request)
+    return templates.TemplateResponse("verify_code.html", {"request": request, "email": user.email})
+
+
+@app.post("/login/verify-code", response_class=HTMLResponse)
+def verify_code(
+    request: Request,
+    email: str = Form(...),
+    code: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    pending = PENDING_2FA.get(email)
+    if not pending or datetime.utcnow() > pending["expires"]:
+        PENDING_2FA.pop(email, None)
+        log_attempt(db, email, False, "code_expired", request)
+        return templates.TemplateResponse("login.html", {"request": request, "error": True, "code_expired": True})
+
+    if code.strip() != pending["code"]:
+        pending["attempts"] += 1
+        if pending["attempts"] >= OTP_MAX_ATTEMPTS:
+            PENDING_2FA.pop(email, None)
+            log_attempt(db, email, False, "2fa_max_attempts", request)
+            return templates.TemplateResponse("login.html", {"request": request, "error": True, "code_expired": True})
+        log_attempt(db, email, False, "2fa_wrong_code", request)
+        return templates.TemplateResponse("verify_code.html", {
+            "request": request, "email": email, "error": True,
+            "attempts_left": OTP_MAX_ATTEMPTS - pending["attempts"],
+        })
+
+    PENDING_2FA.pop(email, None)
+    user = db.query(User).filter(User.email == email).first()
+    if not user or not user.is_active:
+        log_attempt(db, email, False, "user_inactive", request)
+        return templates.TemplateResponse("login.html", {"request": request, "error": True})
+
+    user.last_2fa_at = datetime.utcnow()
+    db.commit()
+    log_attempt(db, email, True, "2fa_success", request)
     request.session["user_email"] = user.email
     return RedirectResponse(url="/", status_code=303)
 
@@ -115,15 +228,21 @@ def home(request: Request, db: Session = Depends(get_db)):
     if user.is_admin:
         urls = db.query(URLRecord).order_by(URLRecord.created_at.desc()).limit(50).all()
         all_users = db.query(User).order_by(User.created_at.desc()).all()
+        login_attempts = db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all()
+        click_logs = db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all()
     else:
         urls = db.query(URLRecord).filter(URLRecord.created_by == user.email).order_by(URLRecord.created_at.desc()).all()
         all_users = []
+        login_attempts = []
+        click_logs = []
 
     return templates.TemplateResponse("index.html", {
         "request": request,
         "user": user,
         "urls": urls,
         "all_users": all_users,
+        "login_attempts": login_attempts,
+        "click_logs": click_logs,
         "base_url": BASE_URL,
         "now": datetime.utcnow(),
     })
@@ -150,6 +269,8 @@ def web_shorten(
         return templates.TemplateResponse("index.html", {
             "request": request, "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
+            "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
+            "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all() if user.is_admin else [],
             "base_url": BASE_URL, "now": datetime.utcnow(),
             "error": f"'{alias}' alias'i zaten kullanımda."
         })
@@ -174,6 +295,8 @@ def web_shorten(
     return templates.TemplateResponse("index.html", {
         "request": request, "user": user, "urls": urls,
         "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
+        "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
+        "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all() if user.is_admin else [],
         "base_url": BASE_URL, "now": datetime.utcnow(),
         "success": f"{BASE_URL}/{alias}"
     })
@@ -212,6 +335,8 @@ def admin_add_user(
         return templates.TemplateResponse("index.html", {
             "request": request, "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all(),
+            "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all(),
+            "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all(),
             "base_url": BASE_URL, "now": datetime.utcnow(),
             "user_error": f"'{email}' zaten kayıtlı."
         })
@@ -286,6 +411,8 @@ def change_password(
         return templates.TemplateResponse("index.html", {
             "request": request, "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
+            "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
+            "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all() if user.is_admin else [],
             "base_url": BASE_URL, "now": datetime.utcnow(),
             "pw_error": pw_error, "pw_success": pw_success,
             "open_pw_modal": True,
@@ -317,7 +444,7 @@ def get_qr(short_code: str, db: Session = Depends(get_db)):
 
 
 @app.get("/{short_code}")
-def redirect_url(short_code: str, db: Session = Depends(get_db)):
+def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db)):
     if short_code in ("login", "logout", "favicon.ico"):
         raise HTTPException(status_code=404)
     record = db.query(URLRecord).filter(URLRecord.short_code == short_code).first()
@@ -330,5 +457,10 @@ def redirect_url(short_code: str, db: Session = Depends(get_db)):
         db.commit()
         raise HTTPException(status_code=410, detail="Bu linkin süresi dolmuş.")
     record.click_count += 1
+    db.add(ClickLog(
+        short_code=short_code,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent", "")[:255],
+    ))
     db.commit()
     return RedirectResponse(url=record.original_url)

@@ -200,6 +200,7 @@
   <div class="tabs">
     <button class="tab-btn active" id="tab-links-btn" onclick="switchTab('links')" id="tab-links-lbl">Linkler</button>
     <button class="tab-btn" id="tab-users-btn" onclick="switchTab('users')" id="tab-users-lbl">Kullanıcı Yönetimi</button>
+    <button class="tab-btn" id="tab-security-btn" onclick="switchTab('security')">Güvenlik</button>
   </div>
   {% endif %}
 
@@ -370,6 +371,72 @@
     </div>
 
   </div><!-- /tab-users -->
+
+  <div id="tab-security" class="tab-content">
+    <div class="card">
+      <div class="card-title">Son Giriş Denemeleri</div>
+      {% if login_attempts %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>E-posta</th>
+              <th>IP Adresi</th>
+              <th>Sonuç</th>
+              <th>Detay</th>
+              <th>Tarih</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for a in login_attempts %}
+            <tr>
+              <td style="font-weight:500;">{{ a.email }}</td>
+              <td style="color:var(--muted);">{{ a.ip_address or '—' }}</td>
+              <td>
+                {% if a.success %}<span class="badge badge-active">Başarılı</span>
+                {% else %}<span class="badge badge-inactive">Başarısız</span>{% endif %}
+              </td>
+              <td style="font-size:0.78rem;color:var(--muted);">{{ a.reason or '—' }}</td>
+              <td style="font-size:0.78rem;color:var(--muted);">{{ a.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="icon">🛡️</div>Henüz giriş denemesi kaydı yok.</div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card-title">Son Link Tıklamaları</div>
+      {% if click_logs %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Kısa Link</th>
+              <th>IP Adresi</th>
+              <th>Tarih</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in click_logs %}
+            <tr>
+              <td><a class="short-link" href="{{ base_url }}/{{ c.short_code }}" target="_blank">/{{ c.short_code }}</a></td>
+              <td style="color:var(--muted);">{{ c.ip_address or '—' }}</td>
+              <td style="font-size:0.78rem;color:var(--muted);">{{ c.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="icon">🖱️</div>Henüz tıklama kaydı yok.</div>
+      {% endif %}
+    </div>
+  </div><!-- /tab-security -->
+
   {% endif %}
 
 </div>
