@@ -37,6 +37,18 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def get_click_groups(db: Session, limit: int = 500):
+    click_logs = db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(limit).all()
+    groups = {}
+    order = []
+    for c in click_logs:
+        if c.short_code not in groups:
+            groups[c.short_code] = []
+            order.append(c.short_code)
+        groups[c.short_code].append(c)
+    return [{"short_code": code, "clicks": groups[code]} for code in order]
+
+
 def log_attempt(db: Session, email: str, success: bool, reason: str, request: Request):
     db.add(LoginAttempt(
         email=email,
@@ -177,12 +189,12 @@ def home(request: Request, db: Session = Depends(get_db)):
         urls = db.query(URLRecord).order_by(URLRecord.created_at.desc()).limit(50).all()
         all_users = db.query(User).order_by(User.created_at.desc()).all()
         login_attempts = db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all()
-        click_logs = db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all()
+        click_groups = get_click_groups(db)
     else:
         urls = db.query(URLRecord).filter(URLRecord.created_by == user.email).order_by(URLRecord.created_at.desc()).all()
         all_users = []
         login_attempts = []
-        click_logs = []
+        click_groups = []
 
     return templates.TemplateResponse("index.html", {
         "request": request,
@@ -190,7 +202,7 @@ def home(request: Request, db: Session = Depends(get_db)):
         "urls": urls,
         "all_users": all_users,
         "login_attempts": login_attempts,
-        "click_logs": click_logs,
+        "click_groups": click_groups,
         "base_url": BASE_URL,
         "now": datetime.utcnow(),
     })
@@ -219,7 +231,7 @@ def web_shorten(
             "request": request, "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
             "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
-            "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all() if user.is_admin else [],
+            "click_groups": get_click_groups(db) if user.is_admin else [],
             "base_url": BASE_URL, "now": datetime.utcnow(),
             "error": f"'{alias}' alias'i zaten kullanımda."
         })
@@ -246,7 +258,7 @@ def web_shorten(
         "request": request, "user": user, "urls": urls,
         "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
         "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
-        "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all() if user.is_admin else [],
+        "click_groups": get_click_groups(db) if user.is_admin else [],
         "base_url": BASE_URL, "now": datetime.utcnow(),
         "success": f"{BASE_URL}/{alias}"
     })
@@ -286,7 +298,7 @@ def admin_add_user(
             "request": request, "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all(),
             "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all(),
-            "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all(),
+            "click_groups": get_click_groups(db),
             "base_url": BASE_URL, "now": datetime.utcnow(),
             "user_error": f"'{email}' zaten kayıtlı."
         })
@@ -362,7 +374,7 @@ def change_password(
             "request": request, "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
             "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
-            "click_logs": db.query(ClickLog).order_by(ClickLog.created_at.desc()).limit(100).all() if user.is_admin else [],
+            "click_groups": get_click_groups(db) if user.is_admin else [],
             "base_url": BASE_URL, "now": datetime.utcnow(),
             "pw_error": pw_error, "pw_success": pw_success,
             "open_pw_modal": True,

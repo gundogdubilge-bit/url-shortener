@@ -414,29 +414,35 @@
 
     <div class="card">
       <div class="card-title">Son Link Tıklamaları</div>
-      {% if click_logs %}
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Kısa Link</th>
-              <th>E-posta</th>
-              <th>IP Adresi</th>
-              <th>Tarih</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for c in click_logs %}
-            <tr>
-              <td><a class="short-link" href="{{ base_url }}/{{ c.short_code }}" target="_blank">/{{ c.short_code }}</a></td>
-              <td style="color:var(--muted);">{{ c.visitor_email or '—' }}</td>
-              <td style="color:var(--muted);">{{ c.ip_address or '—' }}</td>
-              <td style="font-size:0.78rem;color:var(--muted);">{{ c.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      {% if click_groups %}
+      {% for group in click_groups %}
+      <details style="margin-bottom:0.6rem;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <summary style="cursor:pointer;padding:0.7rem 1rem;background:rgba(201,168,76,0.06);font-weight:600;font-size:0.88rem;list-style:none;display:flex;align-items:center;gap:0.5rem;">
+          📁 /{{ group.short_code }}
+          <span style="color:var(--muted);font-weight:500;font-size:0.78rem;">({{ group.clicks|length }} tıklama)</span>
+        </summary>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>E-posta</th>
+                <th>IP Adresi</th>
+                <th>Tarih</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for c in group.clicks %}
+              <tr>
+                <td style="color:var(--muted);">{{ c.visitor_email or '—' }}</td>
+                <td style="color:var(--muted);">{{ c.ip_address or '—' }}</td>
+                <td style="font-size:0.78rem;color:var(--muted);">{{ c.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      {% endfor %}
       {% else %}
       <div class="empty-state"><div class="icon">🖱️</div>Henüz tıklama kaydı yok.</div>
       {% endif %}
