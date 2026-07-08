@@ -3,6 +3,7 @@ import random
 import string
 import io
 import qrcode
+import urllib.parse
 from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
@@ -430,12 +431,19 @@ def _log_click_and_redirect(record: URLRecord, request: Request, db: Session, vi
     return RedirectResponse(url=record.original_url, status_code=303)
 
 
+def _visited_cookie_name(short_code: str) -> str:
+    return f"visited_{short_code}"
+
+
 @app.get("/{short_code}")
 def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db)):
     if short_code in ("login", "logout", "favicon.ico"):
         raise HTTPException(status_code=404)
     record = _get_valid_record(short_code, db)
     if record.require_email:
+        cookie_val = request.cookies.get(_visited_cookie_name(short_code))
+        if cookie_val:
+            return _log_click_and_redirect(record, request, db, visitor_email=urllib.parse.unquote(cookie_val))
         return templates.TemplateResponse("confirm.html", {"request": request, "short_code": short_code})
     return _log_click_and_redirect(record, request, db)
 
@@ -443,4 +451,17 @@ def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db
 @app.post("/{short_code}")
 def redirect_url_confirm(short_code: str, request: Request, visitor_email: str = Form(...), db: Session = Depends(get_db)):
     record = _get_valid_record(short_code, db)
-    return _log_click_and_redirect(record, request, db, visitor_email=visitor_email.strip().lower())
+    email_norm = visitor_email.strip().lower()
+    response = _log_click_and_redirect(record, request, db, visitor_email=email_norm)
+    if record.expires_at:
+        max_age = max(0, int((record.expires_at - datetime.utcnow()).total_seconds()))
+    else:
+        max_age = 60 * 60 * 24 * 365
+    response.set_cookie(
+        _visited_cookie_name(short_code),
+        urllib.parse.quote(email_norm),
+        max_age=max_age,
+        httponly=True,
+        samesite="lax",
+    )
+    return response
