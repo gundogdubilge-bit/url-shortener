@@ -143,11 +143,7 @@
     <h2 id="subtitle">Okul e-posta hesabınızla giriş yapın</h2>
 
     {% if error %}
-    <div class="alert-error" id="err-msg">
-      {% if smtp_error %}Doğrulama kodu gönderilemedi. Lütfen yöneticinize başvurun.
-      {% elif code_expired %}Kodun süresi doldu veya deneme hakkınız bitti. Lütfen tekrar giriş yapın.
-      {% else %}E-posta veya şifre hatalı.{% endif %}
-    </div>
+    <div class="alert-error" id="err-msg">E-posta veya şifre hatalı.</div>
     {% endif %}
 
     <form method="post" action="/login">
