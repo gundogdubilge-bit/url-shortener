@@ -415,7 +415,7 @@ def _log_click_and_redirect(record: URLRecord, request: Request, db: Session, vi
         visitor_email=visitor_email,
     ))
     db.commit()
-    return RedirectResponse(url=record.original_url)
+    return RedirectResponse(url=record.original_url, status_code=303)
 
 
 @app.get("/{short_code}")
