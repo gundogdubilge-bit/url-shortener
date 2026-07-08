@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACI1878 | Giriş</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0d1b3e; --navy2: #162347; --gold: #c9a84c; --gold2: #e8c76a;
+      --light: #f0f4ff; --muted: #8a9bbf; --border: #1e3060; --red: #c0392b;
+    }
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: var(--navy);
+      color: var(--light);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-box {
+      background: var(--navy2);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--gold);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 400px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      justify-content: center;
+      margin-bottom: 1.75rem;
+    }
+    .logo-badge {
+      background: var(--gold);
+      color: var(--navy);
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 6px;
+    }
+    .logo-text { font-size: 1.3rem; font-weight: 700; color: #fff; }
+    .logo-text span { color: var(--gold); }
+    h2 {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--muted);
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+    }
+    .form-group { margin-bottom: 1rem; }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.03em;
+    }
+    input {
+      width: 100%;
+      padding: 0.7rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--navy);
+      color: var(--light);
+      font-size: 0.93rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    input::placeholder { color: #4a6080; }
+    input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.12); }
+    .btn {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 700;
+      font-family: inherit;
+      margin-top: 0.5rem;
+      background: linear-gradient(135deg, var(--gold), var(--gold2));
+      color: var(--navy);
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.88; }
+    .alert-error {
+      background: rgba(192,57,43,0.2);
+      border: 1px solid var(--red);
+      color: #f1948a;
+      padding: 0.7rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    .footer-note {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.75rem;
+      margin-top: 1.5rem;
+    }
+    .lang-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .lang-btn {
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .lang-btn.active { background: var(--gold); color: var(--navy); border-color: var(--gold); }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-badge">ACI</div>
+      <div class="logo-text">Link<span>Kısalt</span></div>
+    </div>
+
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-tr" onclick="setLang('tr')">TR</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+
+    <h2 id="subtitle">Okul e-posta hesabınızla giriş yapın</h2>
+
+    {% if error %}
+    <div class="alert-error" id="err-msg">E-posta veya şifre hatalı.</div>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <div class="form-group">
+        <label id="lbl-email">E-posta</label>
+        <input type="email" name="email" id="inp-email" placeholder="ad.soyad@aci.k12.tr" required autocomplete="email" />
+      </div>
+      <div class="form-group">
+        <label id="lbl-password">Şifre</label>
+        <input type="password" name="password" id="inp-password" placeholder="••••••••" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn" id="btn-login">Giriş Yap</button>
+    </form>
+
+    <div class="footer-note" id="footer-note">
+      Hesabınız yoksa yöneticinizle iletişime geçin.
+    </div>
+  </div>
+
+  <script>
+    const t = {
+      tr: {
+        subtitle: 'Okul e-posta hesabınızla giriş yapın',
+        errMsg: 'E-posta veya şifre hatalı.',
+        lblEmail: 'E-posta', inpEmail: 'ad.soyad@aci.k12.tr',
+        lblPassword: 'Şifre', inpPassword: '••••••••',
+        btnLogin: 'Giriş Yap',
+        footerNote: 'Hesabınız yoksa yöneticinizle iletişime geçin.',
+      },
+      en: {
+        subtitle: 'Sign in with your school email account',
+        errMsg: 'Incorrect email or password.',
+        lblEmail: 'Email', inpEmail: 'firstname.lastname@aci.k12.tr',
+        lblPassword: 'Password', inpPassword: '••••••••',
+        btnLogin: 'Sign In',
+        footerNote: 'Contact your administrator if you don\'t have an account.',
+      }
+    };
+    function setLang(lang) {
+      const l = t[lang];
+      document.getElementById('subtitle').textContent = l.subtitle;
+      document.getElementById('lbl-email').textContent = l.lblEmail;
+      document.getElementById('inp-email').placeholder = l.inpEmail;
+      document.getElementById('lbl-password').textContent = l.lblPassword;
+      document.getElementById('inp-password').placeholder = l.inpPassword;
+      document.getElementById('btn-login').textContent = l.btnLogin;
+      document.getElementById('footer-note').textContent = l.footerNote;
+      const err = document.getElementById('err-msg');
+      if (err) err.textContent = l.errMsg;
+      document.getElementById('btn-tr').classList.toggle('active', lang === 'tr');
+      document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+      localStorage.setItem('aci-lang', lang);
+    }
+    const saved = localStorage.getItem('aci-lang') || 'tr';
+    if (saved !== 'tr') setLang(saved);
+  </script>
+</body>
+</html>

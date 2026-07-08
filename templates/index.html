@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACI1878 | Link Kısaltıcı</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy:#0d1b3e; --navy2:#162347; --gold:#c9a84c; --gold2:#e8c76a;
+      --light:#f0f4ff; --muted:#8a9bbf; --border:#1e3060;
+      --red:#c0392b; --green:#1a6640;
+    }
+    body { font-family:'Inter','Segoe UI',sans-serif; background:var(--navy); color:var(--light); min-height:100vh; }
+
+    header {
+      background:var(--navy2); border-bottom:3px solid var(--gold);
+      padding:0 2rem; display:flex; align-items:center; justify-content:space-between; height:70px;
+    }
+    .logo { display:flex; align-items:center; gap:0.75rem; }
+    .logo-badge { background:var(--gold); color:var(--navy); font-weight:800; font-size:0.85rem; letter-spacing:0.05em; padding:0.35rem 0.65rem; border-radius:6px; }
+    .logo-text { font-size:1.2rem; font-weight:700; color:#fff; }
+    .logo-text span { color:var(--gold); }
+    .header-sub { font-size:0.78rem; color:var(--muted); letter-spacing:0.04em; }
+    .header-right { display:flex; align-items:center; gap:1rem; }
+
+    .user-info { display:flex; align-items:center; gap:0.6rem; }
+    .user-avatar {
+      width:34px; height:34px; border-radius:50%;
+      background:linear-gradient(135deg,var(--gold),var(--gold2));
+      color:var(--navy); font-weight:800; font-size:0.8rem;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .user-email { font-size:0.8rem; color:var(--muted); }
+    .admin-badge {
+      background:rgba(201,168,76,0.15); border:1px solid var(--gold);
+      color:var(--gold); font-size:0.7rem; font-weight:700;
+      padding:0.15rem 0.5rem; border-radius:9999px; letter-spacing:0.05em;
+    }
+    .btn-logout {
+      padding:0.3rem 0.75rem; border-radius:6px; border:1px solid var(--border);
+      background:transparent; color:var(--muted); font-size:0.78rem;
+      font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .btn-logout:hover { border-color:var(--red); color:#f1948a; }
+    .btn-pw {
+      padding:0.3rem 0.75rem; border-radius:6px; border:1px solid var(--border);
+      background:transparent; color:var(--muted); font-size:0.78rem;
+      font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .btn-pw:hover { border-color:var(--gold); color:var(--gold2); }
+
+    .lang-toggle { display:flex; background:var(--navy); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .lang-btn { padding:0.3rem 0.65rem; font-size:0.75rem; font-weight:700; font-family:inherit; border:none; cursor:pointer; background:transparent; color:var(--muted); transition:all 0.2s; }
+    .lang-btn.active { background:var(--gold); color:var(--navy); }
+
+    .container { max-width:900px; margin:2rem auto; padding:0 1.25rem; }
+
+    .hero { text-align:center; padding:1.5rem 0 1rem; }
+    .hero h2 { font-size:1.6rem; font-weight:800; color:#fff; margin-bottom:0.3rem; }
+    .hero h2 span { color:var(--gold); }
+    .hero p { color:var(--muted); font-size:0.9rem; }
+
+    .tabs { display:flex; gap:0.5rem; margin-bottom:1.25rem; }
+    .tab-btn {
+      padding:0.5rem 1.2rem; border-radius:8px; border:1px solid var(--border);
+      background:transparent; color:var(--muted); font-size:0.85rem;
+      font-weight:600; cursor:pointer; font-family:inherit; transition:all 0.2s;
+    }
+    .tab-btn.active { background:var(--gold); color:var(--navy); border-color:var(--gold); }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+
+    .card { background:var(--navy2); border:1px solid var(--border); border-radius:14px; padding:1.75rem; margin-bottom:1.5rem; }
+    .card-title {
+      font-size:0.8rem; font-weight:700; letter-spacing:0.08em; color:var(--gold);
+      text-transform:uppercase; margin-bottom:1.2rem; display:flex; align-items:center; gap:0.5rem;
+    }
+    .card-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+    .form-row { display:flex; flex-wrap:wrap; gap:0.75rem; margin-bottom:0.75rem; }
+    .form-group { display:flex; flex-direction:column; flex:1; min-width:160px; }
+    .form-group label { font-size:0.75rem; font-weight:600; color:var(--muted); margin-bottom:0.35rem; letter-spacing:0.03em; }
+    .form-group input, .form-group select {
+      padding:0.65rem 0.9rem; border-radius:8px; border:1px solid var(--border);
+      background:var(--navy); color:var(--light); font-size:0.9rem;
+      font-family:inherit; outline:none; transition:border-color 0.2s,box-shadow 0.2s;
+    }
+    .form-group input::placeholder { color:#4a6080; }
+    .form-group input:focus, .form-group select:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,168,76,0.12); }
+
+    .btn { padding:0.65rem 1.4rem; border-radius:8px; border:none; cursor:pointer; font-size:0.9rem; font-weight:700; font-family:inherit; transition:opacity 0.2s,transform 0.1s; }
+    .btn:hover { opacity:0.88; } .btn:active { transform:scale(0.97); }
+    .btn-primary { background:linear-gradient(135deg,var(--gold),var(--gold2)); color:var(--navy); }
+    .btn-danger { background:var(--red); color:#fff; padding:0.28rem 0.65rem; font-size:0.78rem; border-radius:6px; }
+    .btn-qr { background:#1a5276; color:#aed6f1; padding:0.28rem 0.65rem; font-size:0.78rem; border-radius:6px; border:1px solid #2e86c1; }
+    .btn-warning { background:#7d6608; color:#f9e79f; padding:0.28rem 0.65rem; font-size:0.78rem; border-radius:6px; border:1px solid #d4ac0d; }
+
+    .alert { padding:0.8rem 1rem; border-radius:10px; margin-bottom:1.2rem; font-size:0.88rem; display:flex; align-items:center; gap:0.6rem; }
+    .alert-success { background:rgba(26,102,64,0.25); border:1px solid #27ae60; color:#82e0aa; }
+    .alert-error   { background:rgba(192,57,43,0.2);  border:1px solid var(--red); color:#f1948a; }
+
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+    th { text-align:left; padding:0.55rem 0.75rem; color:var(--muted); font-size:0.75rem; font-weight:600; letter-spacing:0.05em; text-transform:uppercase; border-bottom:1px solid var(--border); }
+    td { padding:0.65rem 0.75rem; border-bottom:1px solid rgba(30,48,96,0.5); vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:rgba(201,168,76,0.04); }
+
+    .short-link { color:var(--gold2); text-decoration:none; font-weight:600; }
+    .short-link:hover { text-decoration:underline; }
+    .url-cell { max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); }
+
+    .badge { display:inline-block; padding:0.18rem 0.55rem; border-radius:9999px; font-size:0.72rem; font-weight:700; letter-spacing:0.04em; }
+    .badge-active   { background:rgba(26,102,64,0.3);  color:#82e0aa;  border:1px solid #27ae60; }
+    .badge-inactive { background:rgba(192,57,43,0.25); color:#f1948a;  border:1px solid var(--red); }
+    .badge-expired  { background:rgba(192,57,43,0.25); color:#f1948a;  border:1px solid var(--red); }
+    .badge-admin    { background:rgba(201,168,76,0.15); color:var(--gold); border:1px solid var(--gold); }
+
+    .actions { display:flex; gap:0.35rem; align-items:center; }
+    .empty-state { text-align:center; padding:2rem; color:var(--muted); font-size:0.9rem; }
+    .empty-state .icon { font-size:2rem; margin-bottom:0.5rem; }
+
+    .checkbox-row { display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem; }
+    .checkbox-row input[type=checkbox] { width:16px; height:16px; accent-color:var(--gold); }
+    .checkbox-row label { font-size:0.82rem; color:var(--muted); font-weight:500; margin:0; }
+
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(5,10,25,0.85); align-items:center; justify-content:center; z-index:100; backdrop-filter:blur(4px); }
+    .modal-overlay.active { display:flex; }
+    .modal { background:var(--navy2); border:1px solid var(--gold); border-radius:16px; padding:1.75rem; text-align:center; min-width:280px; }
+    .modal h3 { color:var(--gold); font-size:0.9rem; margin-bottom:1rem; letter-spacing:0.04em; }
+    .modal img { max-width:230px; border-radius:10px; background:#fff; padding:10px; margin-bottom:1rem; }
+    .modal-link { color:var(--muted); font-size:0.8rem; margin-bottom:1rem; word-break:break-all; }
+
+    footer { text-align:center; color:var(--muted); font-size:0.75rem; padding:2rem 0 1.5rem; border-top:1px solid var(--border); margin-top:1rem; }
+    footer strong { color:var(--gold); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-badge">ACI</div>
+    <div>
+      <div class="logo-text">Link<span id="logo-word">Kısalt</span></div>
+      <div class="header-sub">aci.k12.tr</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-tr" onclick="setLang('tr')">TR</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+    </div>
+    <div class="user-info">
+      <div class="user-avatar">{{ user.email[0].upper() }}</div>
+      <div>
+        <div style="font-size:0.82rem; font-weight:600;">{{ user.full_name or user.email.split('@')[0] }}</div>
+        <div class="user-email">{{ user.email }}</div>
+      </div>
+      {% if user.is_admin %}<span class="admin-badge">ADMIN</span>{% endif %}
+    </div>
+    <button class="btn-pw" id="btn-pw" onclick="document.getElementById('pwModal').classList.add('active')">🔑 <span id="btn-pw-lbl">Şifre Değiştir</span></button>
+    <form method="get" action="/logout" style="margin:0;">
+      <button type="submit" class="btn-logout" id="btn-logout">Çıkış</button>
+    </form>
+    <div style="color:var(--gold);font-size:1.3rem;font-weight:800;letter-spacing:0.05em;">1878</div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <h2>ACI <span id="hero-title">Kurumsal</span> Link Kısaltıcı</h2>
+    <p id="hero-sub">Uzun bağlantılarınızı kısa, paylaşılabilir ve takip edilebilir linklere dönüştürün.</p>
+  </div>
+
+  {% if success %}
+  <div class="alert alert-success">
+    ✅ <span id="alert-created">Link oluşturuldu:</span>
+    <a class="short-link" href="{{ success }}" target="_blank">{{ success }}</a>
+    <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:0.8rem;" onclick="navigator.clipboard.writeText('{{ success }}');this.textContent='✔';setTimeout(()=>this.textContent='📋',2000)">📋</button>
+  </div>
+  {% endif %}
+  {% if error %}
+  <div class="alert alert-error">⚠️ {{ error }}</div>
+  {% endif %}
+  {% if user_error %}
+  <div class="alert alert-error">⚠️ {{ user_error }}</div>
+  {% endif %}
+  {% if pw_error %}
+  <div class="alert alert-error">🔑 {{ pw_error }}</div>
+  {% endif %}
+  {% if pw_success %}
+  <div class="alert alert-success">🔑 {{ pw_success }}</div>
+  {% endif %}
+
+  <!-- Sekmeler -->
+  {% if user.is_admin %}
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-links-btn" onclick="switchTab('links')" id="tab-links-lbl">Linkler</button>
+    <button class="tab-btn" id="tab-users-btn" onclick="switchTab('users')" id="tab-users-lbl">Kullanıcı Yönetimi</button>
+  </div>
+  {% endif %}
+
+  <!-- LİNKLER SEKMESİ -->
+  <div id="tab-links" class="tab-content active">
+
+    <div class="card">
+      <div class="card-title" id="card-create">Yeni Link Oluştur</div>
+      <form method="post" action="/web/shorten">
+        <div class="form-row">
+          <div class="form-group" style="flex:3;">
+            <label id="lbl-url">Uzun URL *</label>
+            <input type="url" name="original_url" id="inp-url" placeholder="https://uzun-adres.com/cok/uzun/bir/link" required />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label id="lbl-alias">Özel Alias <span style="color:#4a6080;" id="lbl-optional">(isteğe bağlı)</span></label>
+            <input type="text" name="custom_alias" id="inp-alias" placeholder="aci-duyuru" />
+          </div>
+          <div class="form-group">
+            <label id="lbl-expire">Geçerlilik Süresi <span style="color:#4a6080;" id="lbl-days">(gün)</span></label>
+            <input type="number" name="expires_in_days" id="inp-expire" placeholder="Örn: 30" min="1" />
+          </div>
+          <div style="display:flex;align-items:flex-end;">
+            <button type="submit" class="btn btn-primary" id="btn-shorten">Kısalt →</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="card-mylinks">{% if user.is_admin %}Tüm Linkler{% else %}Linklerim{% endif %}</div>
+      {% if urls %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="th-short">Kısa Link</th>
+              <th id="th-target">Hedef URL</th>
+              {% if user.is_admin %}<th id="th-owner">Oluşturan</th>{% endif %}
+              <th id="th-clicks">Tıklanma</th>
+              <th id="th-expires">Geçerlilik</th>
+              <th id="th-status">Durum</th>
+              <th id="th-actions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for url in urls %}
+            <tr>
+              <td><a class="short-link" href="{{ base_url }}/{{ url.short_code }}" target="_blank">/{{ url.short_code }}</a></td>
+              <td class="url-cell" title="{{ url.original_url }}">{{ url.original_url }}</td>
+              {% if user.is_admin %}<td style="font-size:0.78rem;color:var(--muted);">{{ url.created_by or '—' }}</td>{% endif %}
+              <td style="font-weight:600;color:var(--gold2);">{{ url.click_count }}</td>
+              <td style="font-size:0.78rem;color:var(--muted);">{{ url.expires_at.strftime('%d.%m.%Y') if url.expires_at else '—' }}</td>
+              <td>
+                {% if not url.is_active %}
+                  <span class="badge badge-inactive i18n-inactive">Pasif</span>
+                {% elif url.expires_at and url.expires_at < now %}
+                  <span class="badge badge-expired i18n-expired">Süresi Doldu</span>
+                {% else %}
+                  <span class="badge badge-active i18n-active">Aktif</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="actions">
+                  <button class="btn btn-qr" onclick="showQR('{{ url.short_code }}','{{ base_url }}/{{ url.short_code }}')">QR</button>
+                  <form method="post" action="/web/delete/{{ url.short_code }}" onsubmit="return confirm(window._confirm)">
+                    <button type="submit" class="btn btn-danger i18n-delete">Sil</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><div class="icon">🔗</div><span id="empty-text">Henüz hiç link oluşturulmadı.</span></div>
+      {% endif %}
+    </div>
+
+  </div><!-- /tab-links -->
+
+  <!-- KULLANICI YÖNETİMİ SEKMESİ (sadece admin) -->
+  {% if user.is_admin %}
+  <div id="tab-users" class="tab-content">
+
+    <div class="card">
+      <div class="card-title" id="card-adduser">Kullanıcı Ekle</div>
+      <form method="post" action="/admin/users/add">
+        <div class="form-row">
+          <div class="form-group" style="flex:2;">
+            <label id="lbl-uemail">Okul E-posta *</label>
+            <input type="email" name="email" id="inp-uemail" placeholder="ad.soyad@aci.k12.tr" required />
+          </div>
+          <div class="form-group" style="flex:2;">
+            <label id="lbl-uname">Ad Soyad</label>
+            <input type="text" name="full_name" id="inp-uname" placeholder="Ahmet Yılmaz" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label id="lbl-upass">Şifre *</label>
+            <input type="password" name="password" id="inp-upass" placeholder="••••••••" required />
+          </div>
+          <div style="display:flex;align-items:flex-end;flex-direction:column;gap:0.5rem;">
+            <div class="checkbox-row">
+              <input type="checkbox" name="is_admin" id="chk-admin" value="on" />
+              <label for="chk-admin" id="lbl-isadmin">Yönetici yetkisi ver</label>
+            </div>
+            <button type="submit" class="btn btn-primary" id="btn-adduser">Kullanıcı Ekle</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title" id="card-userlist">Kullanıcı Listesi</div>
+      {% if all_users %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="th-uemail">E-posta</th>
+              <th id="th-uname">Ad Soyad</th>
+              <th id="th-urole">Rol</th>
+              <th id="th-ustatus">Durum</th>
+              <th id="th-uactions">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in all_users %}
+            <tr>
+              <td style="font-weight:500;">{{ u.email }}</td>
+              <td style="color:var(--muted);">{{ u.full_name or '—' }}</td>
+              <td>
+                {% if u.is_admin %}<span class="badge badge-admin i18n-role-admin">Admin</span>
+                {% else %}<span class="badge" style="background:rgba(138,155,191,0.15);color:var(--muted);border:1px solid var(--border);" class="i18n-role-user">Kullanıcı</span>{% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}<span class="badge badge-active i18n-active">Aktif</span>
+                {% else %}<span class="badge badge-inactive i18n-inactive">Pasif</span>{% endif %}
+              </td>
+              <td>
+                {% if u.email != user.email %}
+                <div class="actions">
+                  <form method="post" action="/admin/users/toggle/{{ u.id }}">
+                    <button type="submit" class="btn btn-warning i18n-toggle">
+                      {% if u.is_active %}Pasifleştir{% else %}Aktifleştir{% endif %}
+                    </button>
+                  </form>
+                  <button class="btn btn-qr" onclick="openResetModal({{ u.id }}, '{{ u.email }}')" id="btn-reset-lbl" style="font-size:0.78rem;">🔑 Şifre Sıfırla</button>
+                  <form method="post" action="/admin/users/delete/{{ u.id }}" onsubmit="return confirm(window._confirmUser)">
+                    <button type="submit" class="btn btn-danger i18n-delete">Sil</button>
+                  </form>
+                </div>
+                {% else %}
+                <span style="font-size:0.75rem;color:var(--muted);" id="lbl-you">(siz)</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /tab-users -->
+  {% endif %}
+
+</div>
+
+<footer>
+  <strong>ACI 1878</strong> &mdash; <span id="footer-name">Özel İzmir Amerikan Koleji</span> &bull; <span id="footer-rights">Tüm hakları saklıdır.</span>
+</footer>
+
+<!-- Şifre Değiştir Modal (kullanıcı) -->
+<div class="modal-overlay" id="pwModal" {% if open_pw_modal %}style="display:flex;"{% endif %}>
+  <div class="modal" style="min-width:340px;text-align:left;">
+    <h3 id="pw-modal-title" style="text-align:center;">🔑 ŞİFRE DEĞİŞTİR</h3>
+    <form method="post" action="/profile/change-password" style="margin-top:1rem;">
+      <div style="margin-bottom:0.75rem;">
+        <label style="font-size:0.75rem;color:var(--muted);display:block;margin-bottom:0.3rem;" id="lbl-cur-pw">Mevcut Şifre</label>
+        <input type="password" name="current_password" required style="width:100%;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid var(--border);background:var(--navy);color:var(--light);font-family:inherit;outline:none;" />
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:0.75rem;color:var(--muted);display:block;margin-bottom:0.3rem;" id="lbl-new-pw">Yeni Şifre <span style="color:#4a6080;">(en az 6 karakter)</span></label>
+        <input type="password" name="new_password" required minlength="6" style="width:100%;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid var(--border);background:var(--navy);color:var(--light);font-family:inherit;outline:none;" />
+      </div>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button type="button" class="btn" style="background:var(--border);color:var(--muted);" onclick="document.getElementById('pwModal').classList.remove('active');document.getElementById('pwModal').style.display='';" id="pw-cancel-btn">İptal</button>
+        <button type="submit" class="btn btn-primary" id="pw-save-btn">Kaydet</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Admin Şifre Sıfırla Modal -->
+<div class="modal-overlay" id="resetModal">
+  <div class="modal" style="min-width:340px;text-align:left;">
+    <h3 id="reset-modal-title" style="text-align:center;">🔑 ŞİFRE SIFIRLA</h3>
+    <p id="reset-target-email" style="text-align:center;font-size:0.82rem;color:var(--muted);margin:0.5rem 0 1rem;"></p>
+    <form id="resetForm" method="post">
+      <div style="margin-bottom:1rem;">
+        <label style="font-size:0.75rem;color:var(--muted);display:block;margin-bottom:0.3rem;" id="lbl-admin-new-pw">Yeni Şifre <span style="color:#4a6080;">(en az 6 karakter)</span></label>
+        <input type="password" name="new_password" required minlength="6" id="reset-pw-input" style="width:100%;padding:0.6rem 0.8rem;border-radius:8px;border:1px solid var(--border);background:var(--navy);color:var(--light);font-family:inherit;outline:none;" />
+      </div>
+      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+        <button type="button" class="btn" style="background:var(--border);color:var(--muted);" onclick="document.getElementById('resetModal').classList.remove('active')" id="reset-cancel-btn">İptal</button>
+        <button type="submit" class="btn btn-primary" id="reset-save-btn">Sıfırla</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div class="modal-overlay" id="qrModal">
+  <div class="modal">
+    <h3 id="modal-qr-title">QR KOD</h3>
+    <img id="qrImg" src="" alt="QR" />
+    <div class="modal-link" id="qrLink"></div>
+    <button class="btn btn-primary" id="modal-close-btn" onclick="document.getElementById('qrModal').classList.remove('active')">Kapat</button>
+  </div>
+</div>
+
+<script>
+  window._confirm     = 'Bu link silinsin mi?';
+  window._confirmUser = 'Bu kullanıcı silinsin mi?';
+
+  const translations = {
+    tr: {
+      logoWord:'Kısalt', heroTitle:'Kurumsal',
+      heroSub:'Uzun bağlantılarınızı kısa, paylaşılabilir ve takip edilebilir linklere dönüştürün.',
+      alertCreated:'Link oluşturuldu:',
+      cardCreate:'Yeni Link Oluştur', cardMyLinks:'Linklerim',
+      lblUrl:'Uzun URL *', lblAlias:'Özel Alias', lblOptional:'(isteğe bağlı)',
+      lblExpire:'Geçerlilik Süresi', lblDays:'(gün)', btnShorten:'Kısalt →',
+      thShort:'Kısa Link', thTarget:'Hedef URL', thOwner:'Oluşturan',
+      thClicks:'Tıklanma', thExpires:'Geçerlilik', thStatus:'Durum', thActions:'İşlem',
+      active:'Aktif', inactive:'Pasif', expired:'Süresi Doldu',
+      deleteLbl:'Sil', confirmDelete:'Bu link silinsin mi?',
+      emptyText:'Henüz hiç link oluşturulmadı.',
+      modalTitle:'QR KOD', modalClose:'Kapat',
+      footerName:'Özel İzmir Amerikan Koleji', footerRights:'Tüm hakları saklıdır.',
+      inpUrl:'https://uzun-adres.com/cok/uzun/bir/link', inpAlias:'aci-duyuru', inpExpire:'Örn: 30',
+      tabLinks:'Linkler', tabUsers:'Kullanıcı Yönetimi',
+      cardAddUser:'Kullanıcı Ekle', cardUserList:'Kullanıcı Listesi',
+      lblUemail:'Okul E-posta *', inpUemail:'ad.soyad@aci.k12.tr',
+      lblUname:'Ad Soyad', inpUname:'Ahmet Yılmaz',
+      lblUpass:'Şifre *', lblIsAdmin:'Yönetici yetkisi ver',
+      btnAddUser:'Kullanıcı Ekle',
+      thUemail:'E-posta', thUname:'Ad Soyad', thUrole:'Rol', thUstatus:'Durum', thUactions:'İşlem',
+      roleAdmin:'Admin', roleUser:'Kullanıcı',
+      toggleDeactivate:'Pasifleştir', toggleActivate:'Aktifleştir',
+      confirmDeleteUser:'Bu kullanıcı silinsin mi?',
+      logout:'Çıkış', lblYou:'(siz)',
+      btnPwLbl:'Şifre Değiştir', pwModalTitle:'ŞİFRE DEĞİŞTİR',
+      lblCurPw:'Mevcut Şifre', lblNewPw:'Yeni Şifre',
+      pwCancelBtn:'İptal', pwSaveBtn:'Kaydet',
+      resetModalTitle:'ŞİFRE SIFIRLA', lblAdminNewPw:'Yeni Şifre',
+      resetCancelBtn:'İptal', resetSaveBtn:'Sıfırla',
+    },
+    en: {
+      logoWord:'Shorten', heroTitle:'Corporate',
+      heroSub:'Turn long URLs into short, shareable and trackable links.',
+      alertCreated:'Link created:',
+      cardCreate:'Create New Link', cardMyLinks:'My Links',
+      lblUrl:'Long URL *', lblAlias:'Custom Alias', lblOptional:'(optional)',
+      lblExpire:'Expiration Period', lblDays:'(days)', btnShorten:'Shorten →',
+      thShort:'Short Link', thTarget:'Target URL', thOwner:'Created By',
+      thClicks:'Clicks', thExpires:'Expires', thStatus:'Status', thActions:'Actions',
+      active:'Active', inactive:'Inactive', expired:'Expired',
+      deleteLbl:'Delete', confirmDelete:'Delete this link?',
+      emptyText:'No links created yet.',
+      modalTitle:'QR CODE', modalClose:'Close',
+      footerName:'American Collegiate Institute', footerRights:'All rights reserved.',
+      inpUrl:'https://long-address.com/very/long/link', inpAlias:'aci-announcement', inpExpire:'e.g. 30',
+      tabLinks:'Links', tabUsers:'User Management',
+      cardAddUser:'Add User', cardUserList:'User List',
+      lblUemail:'School Email *', inpUemail:'firstname.lastname@aci.k12.tr',
+      lblUname:'Full Name', inpUname:'John Smith',
+      lblUpass:'Password *', lblIsAdmin:'Grant admin access',
+      btnAddUser:'Add User',
+      thUemail:'Email', thUname:'Full Name', thUrole:'Role', thUstatus:'Status', thUactions:'Actions',
+      roleAdmin:'Admin', roleUser:'User',
+      toggleDeactivate:'Deactivate', toggleActivate:'Activate',
+      confirmDeleteUser:'Delete this user?',
+      logout:'Sign Out', lblYou:'(you)',
+      btnPwLbl:'Change Password', pwModalTitle:'CHANGE PASSWORD',
+      lblCurPw:'Current Password', lblNewPw:'New Password',
+      pwCancelBtn:'Cancel', pwSaveBtn:'Save',
+      resetModalTitle:'RESET PASSWORD', lblAdminNewPw:'New Password',
+      resetCancelBtn:'Cancel', resetSaveBtn:'Reset',
+    }
+  };
+
+  function setLang(lang) {
+    const t = translations[lang];
+    window._confirm     = t.confirmDelete;
+    window._confirmUser = t.confirmDeleteUser;
+
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    const ph  = (id, val) => { const el = document.getElementById(id); if (el) el.placeholder = val; };
+
+    set('logo-word', t.logoWord); set('hero-title', t.heroTitle); set('hero-sub', t.heroSub);
+    set('alert-created', t.alertCreated);
+    set('card-create', t.cardCreate); set('card-mylinks', t.cardMyLinks);
+    set('lbl-url', t.lblUrl); set('lbl-alias', t.lblAlias); set('lbl-optional', t.lblOptional);
+    set('lbl-expire', t.lblExpire); set('lbl-days', t.lblDays); set('btn-shorten', t.btnShorten);
+    ph('inp-url', t.inpUrl); ph('inp-alias', t.inpAlias); ph('inp-expire', t.inpExpire);
+    set('th-short', t.thShort); set('th-target', t.thTarget); set('th-owner', t.thOwner);
+    set('th-clicks', t.thClicks); set('th-expires', t.thExpires);
+    set('th-status', t.thStatus); set('th-actions', t.thActions);
+    set('empty-text', t.emptyText);
+    set('modal-qr-title', t.modalTitle); set('modal-close-btn', t.modalClose);
+    set('footer-name', t.footerName); set('footer-rights', t.footerRights);
+    set('btn-logout', t.logout);
+    set('btn-pw-lbl', t.btnPwLbl);
+    set('pw-modal-title', t.pwModalTitle);
+    set('lbl-cur-pw', t.lblCurPw); set('lbl-new-pw', t.lblNewPw);
+    set('pw-cancel-btn', t.pwCancelBtn); set('pw-save-btn', t.pwSaveBtn);
+    set('reset-modal-title', t.resetModalTitle);
+    set('lbl-admin-new-pw', t.lblAdminNewPw);
+    set('reset-cancel-btn', t.resetCancelBtn); set('reset-save-btn', t.resetSaveBtn);
+
+    set('tab-links-btn', t.tabLinks); set('tab-users-btn', t.tabUsers);
+    set('card-adduser', t.cardAddUser); set('card-userlist', t.cardUserList);
+    set('lbl-uemail', t.lblUemail); ph('inp-uemail', t.inpUemail);
+    set('lbl-uname', t.lblUname); ph('inp-uname', t.inpUname);
+    set('lbl-upass', t.lblUpass); set('lbl-isadmin', t.lblIsAdmin);
+    set('btn-adduser', t.btnAddUser);
+    set('th-uemail', t.thUemail); set('th-uname', t.thUname);
+    set('th-urole', t.thUrole); set('th-ustatus', t.thUstatus); set('th-uactions', t.thUactions);
+    set('lbl-you', t.lblYou);
+
+    document.querySelectorAll('.i18n-active').forEach(el => el.textContent = t.active);
+    document.querySelectorAll('.i18n-inactive').forEach(el => el.textContent = t.inactive);
+    document.querySelectorAll('.i18n-expired').forEach(el => el.textContent = t.expired);
+    document.querySelectorAll('.i18n-delete').forEach(el => el.textContent = t.deleteLbl);
+    document.querySelectorAll('.i18n-role-admin').forEach(el => el.textContent = t.roleAdmin);
+    document.querySelectorAll('.i18n-role-user').forEach(el => el.textContent = t.roleUser);
+
+    document.querySelectorAll('.i18n-toggle').forEach(el => {
+      const isDeactivate = el.closest('form').action.includes('toggle');
+      el.textContent = el.dataset.active === 'true' ? t.toggleDeactivate : t.toggleActivate;
+    });
+
+    document.getElementById('btn-tr').classList.toggle('active', lang === 'tr');
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.documentElement.lang = lang;
+    localStorage.setItem('aci-lang', lang);
+  }
+
+  function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    document.getElementById('tab-' + tab + '-btn').classList.add('active');
+  }
+
+  function openResetModal(userId, email) {
+    document.getElementById('resetForm').action = '/admin/users/reset-password/' + userId;
+    document.getElementById('reset-target-email').textContent = email;
+    document.getElementById('reset-pw-input').value = '';
+    document.getElementById('resetModal').classList.add('active');
+  }
+  document.getElementById('resetModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+  document.getElementById('pwModal').addEventListener('click', function(e) {
+    if (e.target === this) { this.classList.remove('active'); this.style.display = ''; }
+  });
+
+  // URL'de tab veya msg parametresi varsa sekmeyi aç
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('tab') === 'users') { switchTab('users'); }
+
+  function showQR(code, url) {
+    document.getElementById('qrImg').src = '/qr/' + code;
+    document.getElementById('qrLink').textContent = url;
+    document.getElementById('qrModal').classList.add('active');
+  }
+  document.getElementById('qrModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('active');
+  });
+
+  const saved = localStorage.getItem('aci-lang') || 'tr';
+  if (saved !== 'tr') setLang(saved);
+</script>
+</body>
+</html>

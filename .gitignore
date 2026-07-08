@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+urls.db
+cert.pem
+key.pem
+cloudflared.exe
+.env
