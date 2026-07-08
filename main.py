@@ -152,6 +152,11 @@ def login_post(
             "error": True
         })
 
+    if user.is_admin:
+        log_attempt(db, user.email, True, "admin_2fa_exempt", request)
+        request.session["user_email"] = user.email
+        return RedirectResponse(url="/", status_code=303)
+
     today = datetime.utcnow().date()
     if user.last_2fa_at and user.last_2fa_at.date() == today:
         log_attempt(db, user.email, True, "same_day_2fa_skip", request)
