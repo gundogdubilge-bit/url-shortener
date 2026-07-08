@@ -26,6 +26,9 @@ templates = Jinja2Templates(directory="templates")
 BASE_URL = os.environ.get("BASE_URL", "https://aci1878.site")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+LOCKOUT_THRESHOLD = 5
+LOCKOUT_WINDOW_MINUTES = 15
+
 
 def get_client_ip(request: Request) -> str:
     forwarded = request.headers.get("x-forwarded-for")
@@ -121,6 +124,21 @@ def login_post(
     db: Session = Depends(get_db),
 ):
     email_norm = email.strip().lower()
+
+    window_start = datetime.utcnow() - timedelta(minutes=LOCKOUT_WINDOW_MINUTES)
+    recent_failures = db.query(LoginAttempt).filter(
+        LoginAttempt.email == email_norm,
+        LoginAttempt.success == False,
+        LoginAttempt.created_at >= window_start,
+    ).count()
+    if recent_failures >= LOCKOUT_THRESHOLD:
+        log_attempt(db, email_norm, False, "locked_out", request)
+        return templates.TemplateResponse("login.html", {
+            "request": request,
+            "error": True,
+            "locked_out": True,
+        })
+
     user = db.query(User).filter(User.email == email_norm).first()
     if not user or not user.is_active or not pwd_context.verify(password, user.password_hash):
         log_attempt(db, email_norm, False, "invalid_credentials", request)

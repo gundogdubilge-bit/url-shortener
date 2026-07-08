@@ -143,7 +143,10 @@
     <h2 id="subtitle">Okul e-posta hesabınızla giriş yapın</h2>
 
     {% if error %}
-    <div class="alert-error" id="err-msg">E-posta veya şifre hatalı.</div>
+    <div class="alert-error" id="err-msg">
+      {% if locked_out %}Çok fazla başarısız deneme. Lütfen {{ 15 }} dakika sonra tekrar deneyin.
+      {% else %}E-posta veya şifre hatalı.{% endif %}
+    </div>
     {% endif %}
 
     <form method="post" action="/login">
