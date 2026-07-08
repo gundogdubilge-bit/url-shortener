@@ -85,12 +85,14 @@ def startup():
             conn.execute(text("ALTER TABLE urls ADD COLUMN created_by TEXT"))
             conn.commit()
         except Exception:
-            pass
+            conn.rollback()
+
+    with engine.connect() as conn:
         try:
             conn.execute(text("ALTER TABLE users ADD COLUMN last_2fa_at TIMESTAMP"))
             conn.commit()
         except Exception:
-            pass
+            conn.rollback()
     db = SessionLocal()
     if not db.query(User).first():
         admin = User(
