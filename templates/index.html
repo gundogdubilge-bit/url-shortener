@@ -502,7 +502,12 @@
     <h3 id="modal-qr-title">QR KOD</h3>
     <img id="qrImg" src="" alt="QR" />
     <div class="modal-link" id="qrLink"></div>
-    <button class="btn btn-primary" id="modal-close-btn" onclick="document.getElementById('qrModal').classList.remove('active')">Kapat</button>
+    <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;margin-bottom:0.75rem;">
+      <button class="btn btn-primary" id="btn-qr-download" onclick="qrDownload()">⬇ İndir</button>
+      <button class="btn btn-primary" id="btn-qr-copy" onclick="qrCopy()">📋 Kopyala</button>
+      <button class="btn btn-primary" id="btn-qr-share" onclick="qrShare()" style="display:none;">↗ Paylaş</button>
+    </div>
+    <button class="btn" id="modal-close-btn" style="background:var(--border);color:var(--light);width:100%;" onclick="document.getElementById('qrModal').classList.remove('active')">Kapat</button>
   </div>
 </div>
 
@@ -658,11 +663,46 @@
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('tab') === 'users') { switchTab('users'); }
 
+  let _qrCode = '';
+
   function showQR(code, url) {
+    _qrCode = code;
     document.getElementById('qrImg').src = '/qr/' + code;
     document.getElementById('qrLink').textContent = url;
+    document.getElementById('btn-qr-share').style.display = navigator.share ? 'inline-block' : 'none';
     document.getElementById('qrModal').classList.add('active');
   }
+
+  function qrDownload() {
+    const a = document.createElement('a');
+    a.href = '/qr/' + _qrCode;
+    a.download = 'qr-' + _qrCode + '.png';
+    a.click();
+  }
+
+  async function qrCopy() {
+    const btn = document.getElementById('btn-qr-copy');
+    try {
+      const res = await fetch('/qr/' + _qrCode);
+      const blob = await res.blob();
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+      btn.textContent = '✓ Kopyalandı';
+      setTimeout(() => btn.textContent = '📋 Kopyala', 2000);
+    } catch {
+      btn.textContent = '✗ Hata';
+      setTimeout(() => btn.textContent = '📋 Kopyala', 2000);
+    }
+  }
+
+  async function qrShare() {
+    try {
+      const res = await fetch('/qr/' + _qrCode);
+      const blob = await res.blob();
+      const file = new File([blob], 'qr-' + _qrCode + '.png', { type: 'image/png' });
+      await navigator.share({ files: [file], title: 'QR Kod', text: document.getElementById('qrLink').textContent });
+    } catch {}
+  }
+
   document.getElementById('qrModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('active');
   });
