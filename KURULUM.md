@@ -51,7 +51,7 @@ https://aci1878
 
 ## Giriş Bilgileri
 - E-posta: admin@aci.k12.tr
-- Şifre: aci1878
+- Şifre: Sistem yöneticisinden alınız
 
 ---
 
