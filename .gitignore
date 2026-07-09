@@ -1,7 +1,10 @@
 __pycache__/
 *.pyc
-urls.db
+*.pyo
+*.db
 cert.pem
 key.pem
 cloudflared.exe
 .env
+venv/
+.venv/
