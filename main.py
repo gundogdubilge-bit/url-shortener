@@ -133,7 +133,7 @@ def login_page(request: Request):
     user_email = request.session.get("user_email")
     if user_email:
         return RedirectResponse(url="/", status_code=303)
-    return templates.TemplateResponse("login.html", {"request": request})
+    return templates.TemplateResponse(request, "login.html")
 
 
 @app.post("/login", response_class=HTMLResponse)
@@ -153,8 +153,7 @@ def login_post(
     ).count()
     if recent_failures >= LOCKOUT_THRESHOLD:
         log_attempt(db, email_norm, False, "locked_out", request)
-        return templates.TemplateResponse("login.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "login.html", {
             "error": True,
             "locked_out": True,
         })
@@ -162,8 +161,7 @@ def login_post(
     user = db.query(User).filter(User.email == email_norm).first()
     if not user or not user.is_active or not pwd_context.verify(password, user.password_hash):
         log_attempt(db, email_norm, False, "invalid_credentials", request)
-        return templates.TemplateResponse("login.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "login.html", {
             "error": True
         })
 
@@ -197,8 +195,7 @@ def home(request: Request, db: Session = Depends(get_db)):
         login_attempts = []
         click_groups = []
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "index.html", {
         "user": user,
         "urls": urls,
         "all_users": all_users,
@@ -228,8 +225,8 @@ def web_shorten(
 
     if db.query(URLRecord).filter(URLRecord.short_code == alias).first():
         urls = db.query(URLRecord).filter(URLRecord.created_by == user.email).order_by(URLRecord.created_at.desc()).all() if not user.is_admin else db.query(URLRecord).order_by(URLRecord.created_at.desc()).limit(50).all()
-        return templates.TemplateResponse("index.html", {
-            "request": request, "user": user, "urls": urls,
+        return templates.TemplateResponse(request, "index.html", {
+            "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
             "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
             "click_groups": get_click_groups(db) if user.is_admin else [],
@@ -255,8 +252,8 @@ def web_shorten(
     db.commit()
 
     urls = db.query(URLRecord).filter(URLRecord.created_by == user.email).order_by(URLRecord.created_at.desc()).all() if not user.is_admin else db.query(URLRecord).order_by(URLRecord.created_at.desc()).limit(50).all()
-    return templates.TemplateResponse("index.html", {
-        "request": request, "user": user, "urls": urls,
+    return templates.TemplateResponse(request, "index.html", {
+        "user": user, "urls": urls,
         "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
         "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
         "click_groups": get_click_groups(db) if user.is_admin else [],
@@ -295,8 +292,8 @@ def admin_add_user(
     email = email.strip().lower()
     if db.query(User).filter(User.email == email).first():
         urls = db.query(URLRecord).order_by(URLRecord.created_at.desc()).limit(50).all()
-        return templates.TemplateResponse("index.html", {
-            "request": request, "user": user, "urls": urls,
+        return templates.TemplateResponse(request, "index.html", {
+            "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all(),
             "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all(),
             "click_groups": get_click_groups(db),
@@ -371,8 +368,8 @@ def change_password(
 
     def _reload(pw_error=None, pw_success=None):
         urls = db.query(URLRecord).filter(URLRecord.created_by == user.email).order_by(URLRecord.created_at.desc()).all() if not user.is_admin else db.query(URLRecord).order_by(URLRecord.created_at.desc()).limit(50).all()
-        return templates.TemplateResponse("index.html", {
-            "request": request, "user": user, "urls": urls,
+        return templates.TemplateResponse(request, "index.html", {
+            "user": user, "urls": urls,
             "all_users": db.query(User).order_by(User.created_at.desc()).all() if user.is_admin else [],
             "login_attempts": db.query(LoginAttempt).order_by(LoginAttempt.created_at.desc()).limit(100).all() if user.is_admin else [],
             "click_groups": get_click_groups(db) if user.is_admin else [],
@@ -444,7 +441,7 @@ def redirect_url(short_code: str, request: Request, db: Session = Depends(get_db
         cookie_val = request.cookies.get(_visited_cookie_name(short_code))
         if cookie_val:
             return _log_click_and_redirect(record, request, db, visitor_email=urllib.parse.unquote(cookie_val))
-        return templates.TemplateResponse("confirm.html", {"request": request, "short_code": short_code})
+        return templates.TemplateResponse(request, "confirm.html", {"short_code": short_code})
     return _log_click_and_redirect(record, request, db)
 
 
