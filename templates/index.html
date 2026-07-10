@@ -204,6 +204,23 @@
   </div>
   {% endif %}
 
+  {% if user.is_admin and request.url.hostname in ['localhost', '127.0.0.1', 'aci1878'] %}
+  <div style="margin:1rem 0; padding:1rem 1.25rem; background:#162347; border:1px solid #1e3060; border-left:3px solid #c9a84c; border-radius:10px;">
+    <div style="font-size:0.8rem; color:#8a9bbf; margin-bottom:0.6rem;">🚀 Geliştirici — GitHub'a Gönder</div>
+    <form method="post" action="/admin/deploy" style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+      <input type="text" name="commit_msg" value="Guncelleme" placeholder="Commit mesajı"
+        style="flex:1; min-width:200px; padding:0.5rem 0.75rem; border-radius:7px; border:1px solid #1e3060;
+               background:#0d1b3e; color:#f0f4ff; font-family:inherit; font-size:0.85rem;">
+      <button type="submit"
+        style="padding:0.5rem 1.2rem; border-radius:7px; border:none; cursor:pointer;
+               background:linear-gradient(135deg,#c9a84c,#e8c76a); color:#0d1b3e;
+               font-weight:700; font-family:inherit; font-size:0.85rem;">
+        Push → GitHub
+      </button>
+    </form>
+  </div>
+  {% endif %}
+
   <!-- LİNKLER SEKMESİ -->
   <div id="tab-links" class="tab-content active">
 

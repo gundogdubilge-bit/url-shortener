@@ -2,6 +2,7 @@ import os
 import random
 import string
 import io
+import subprocess
 import qrcode
 import urllib.parse
 from datetime import datetime, timedelta
@@ -462,3 +463,53 @@ def redirect_url_confirm(short_code: str, request: Request, visitor_email: str =
         samesite="lax",
     )
     return response
+
+
+# ── Local Deploy ──────────────────────────────────────────────────────────────
+
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "aci1878"}
+GIT_PATH = r"C:\Program Files\Git\cmd\git.exe"
+
+@app.post("/admin/deploy", response_class=HTMLResponse)
+def admin_deploy(request: Request, commit_msg: str = Form("Guncelleme"), db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user or not user.is_admin:
+        return RedirectResponse(url="/", status_code=303)
+
+    host = request.headers.get("host", "").split(":")[0]
+    if host not in LOCAL_HOSTS:
+        return HTMLResponse("<p>Bu işlem sadece yerel ortamda kullanılabilir.</p>", status_code=403)
+
+    repo_dir = os.path.dirname(os.path.abspath(__file__))
+    env = {**os.environ, "PATH": os.environ.get("PATH", "") + r";C:\Program Files\Git\cmd"}
+
+    try:
+        subprocess.run([GIT_PATH, "add", "."], cwd=repo_dir, check=True, capture_output=True)
+        result = subprocess.run(
+            [GIT_PATH, "commit", "-m", commit_msg],
+            cwd=repo_dir, capture_output=True, text=True, env=env
+        )
+        if result.returncode not in (0, 1):
+            raise subprocess.CalledProcessError(result.returncode, "commit", result.stderr)
+        push = subprocess.run(
+            [GIT_PATH, "push"],
+            cwd=repo_dir, check=True, capture_output=True, text=True, env=env
+        )
+        output = push.stdout or push.stderr or "Push tamamlandı."
+        status = "success"
+    except subprocess.CalledProcessError as e:
+        output = e.stderr if hasattr(e, "stderr") and e.stderr else str(e)
+        status = "error"
+
+    return HTMLResponse(f"""
+    <html><head><meta charset="UTF-8">
+    <style>body{{font-family:monospace;background:#0d1b3e;color:#f0f4ff;padding:2rem;}}
+    .ok{{color:#2ecc71;}}.err{{color:#e74c3c;}}
+    a{{color:#c9a84c;}}</style></head><body>
+    <h3 class="{'ok' if status=='success' else 'err'}">
+    {'✓ GitHub\'a gönderildi' if status=='success' else '✗ Hata oluştu'}
+    </h3>
+    <pre>{output}</pre>
+    <a href="/">← Panele dön</a>
+    </body></html>
+    """)
